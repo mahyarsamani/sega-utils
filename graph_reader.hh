@@ -33,16 +33,31 @@
 #include <fstream>
 #include <string>
 
-struct WorkListItem
+struct __attribute__ ((packed)) WorkListItem
 {
-    uint32_t temp_prop;
+    uint32_t tempProp;
     uint32_t prop;
     uint32_t degree;
     uint32_t edgeIndex;
-};
-uint8_t* workListToBytes(WorkListItem wl);
 
-struct Edge
+    WorkListItem(uint32_t temp_prop, uint32_t prop,
+                uint32_t degree, uint32_t edge_index):
+        tempProp(temp_prop),
+        prop(prop),
+        degree(degree),
+        edgeIndex(edge_index)
+    {}
+    std::string to_string() {
+      std::string ret = "";
+      ret += "WorkListItem{temp_prop: " + std::to_string(tempProp) +
+                ", prop: " + std::to_string(prop) +
+                ", degree: " + std::to_string(degree) +
+                ", edgeIndex: " + std::to_string(edgeIndex) + "}";
+      return ret;
+    }
+};
+
+struct __attribute__ ((packed)) Edge
 {
     uint64_t weight;
     uint64_t neighbor;
@@ -51,22 +66,27 @@ struct Edge
         weight(weight),
         neighbor(neighbor)
     {}
+
+    std::string to_string() {
+      std::string ret = "";
+      ret += "Edge{weight: " + std::to_string(weight) + ", neighbord: " +
+              std::to_string(neighbor) + "}";
+      return ret;
+    }
 };
-uint8_t* edgeToBytes(Edge e);
 
 class GraphReader
 {
   private:
     std::string graphFileName;
+    bool isWeighted;
     std::string outdir;
     int numMPUs;
 
-    std::pair<int, int> parseStringToInts(std::string line);
-
   public:
 
-    GraphReader(std::string graph_file_name, std::string outdir, int num_mpus);
-    ~GraphReader();
+    GraphReader(std::string graph_file_name, bool is_weighted,
+                std::string outdir, int num_mpus);
 
     void createBinaryFiles();
 };

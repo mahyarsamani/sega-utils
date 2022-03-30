@@ -28,89 +28,21 @@
 
 #include "graph_reader.hh"
 
-#include <cstring>
 #include <iostream>
-#include <tuple>
 #include <vector>
 
 #define MEMORY_ATOM_SIZE 64
 #define INF_VAL 4294967295
 
-uint8_t*
-workListToBytes(WorkListItem wl){
-    int  data_size = sizeof(WorkListItem) / sizeof(uint8_t);
-    uint8_t* data = new uint8_t [data_size];
-
-    uint32_t* tempPtr = (uint32_t*) data;
-    *tempPtr = wl.temp_prop;
-
-    uint32_t* propPtr = (uint32_t*) (data + 4);
-    *propPtr = wl.prop;
-
-    uint32_t* degreePtr = (uint32_t*) (data + 8);
-    *degreePtr = wl.degree;
-
-    uint32_t* edgePtr = (uint32_t*) (data + 12);
-    *edgePtr = wl.edgeIndex;
-
-    return data;
-}
-
-uint8_t*
-edgeToBytes(Edge e)
-{
-    int data_size = (int) ((sizeof(Edge)) / (sizeof(uint8_t)));
-
-    uint8_t* data = new uint8_t [data_size];
-
-    uint64_t* weightPtr = (uint64_t*) data;
-    *weightPtr = e.weight;
-
-    // data + 8 because weight: 8 bytes
-    uint64_t* neighborPtr = (uint64_t*) (data + 8);
-    *neighborPtr = e.neighbor;
-
-    return data;
-}
-
 GraphReader::GraphReader(std::string graph_file_name,
+                        bool is_weighted,
                         std::string outdir,
                         int num_mpus):
     graphFileName(graph_file_name),
+    isWeighted(is_weighted),
     outdir(outdir),
     numMPUs(num_mpus)
 {}
-
-GraphReader::~GraphReader()
-{}
-
-std::pair<int, int>
-GraphReader::parseStringToInts(std::string line)
-{
-    std::string line_bak = line;
-    std::string delimiter = " ";
-    size_t pos = 0;
-
-    int tokenIndex = 0;
-    int srcId = 0;
-    int dstId = 0;
-
-    while ((pos = line.find(delimiter)) != std::string::npos) {
-        int token = stoi(line.substr(0, pos));
-        if (tokenIndex == 0) {
-            srcId = token;
-            tokenIndex++;
-        } else if (tokenIndex == 1) {
-            dstId = token;
-            tokenIndex++;
-        } else {
-            std::cerr << line_bak << " " << srcId << " " << dstId << std::endl;
-            throw -1;
-        }
-        line.erase(0, pos + delimiter.length());
-    }
-    return std::make_pair(srcId, dstId);
-}
 
 void
 GraphReader::createBinaryFiles()
@@ -118,70 +50,106 @@ GraphReader::createBinaryFiles()
     std::ifstream graph_file;
     graph_file.open(graphFileName);
 
-    std::string vertex_file_name = outdir + "/vertices";
-    std::string base_edge_file_name = outdir + "/edgelist";
-
     std::ofstream vertex_binary;
+    std::string vertex_file_name = outdir + "/vertices";
     vertex_binary.open(vertex_file_name, std::ios::binary | std::ios::out);
 
-    std::ofstream edge_binary;
+    std::vector<std::ofstream> edge_binaries;
+    std::string base_edge_file_name = outdir + "/edgelist";
+    for (int i = 0; i < numMPUs; i++) {
+        edge_binaries.emplace_back(
+            base_edge_file_name + "_" + std::to_string(i),
+            std::ios::binary | std::ios::out);
+    }
 
     int curr_src_id = -1;
     uint32_t curr_edge_index[numMPUs] = {0};
-    std::vector<Edge> curr_edge_list;
-    curr_edge_list.clear();
+    uint32_t curr_num_edges = 0;
 
-    std::string line;
-    while(graph_file) {
-        std::getline(graph_file, line);
-        int src_id, dst_id;
-        std::tie(src_id, dst_id) = parseStringToInts(line);
-        // Found new src_id
-        if (src_id != curr_src_id) {
-            // First vertex
-            if (curr_src_id == -1) {
-                curr_src_id = src_id;
-                uint64_t dst_addr = dst_id * sizeof(WorkListItem);
-                curr_edge_list.emplace_back(0, dst_addr);
-            } else {
+    int max_dst_id = -1;
+    int src_id, dst_id, weight;
+    while(!graph_file.fail()) {
+        if (isWeighted) {
+            graph_file >> src_id >> dst_id >> weight;
+        } else {
+            graph_file >> src_id >> dst_id;
+            weight = 0;
+        }
+
+        std::clog << "read src_id: " << src_id << ", dst_id: " << dst_id
+                    << ", weight: " << weight << std::endl;
+        if (dst_id > max_dst_id) {
+            max_dst_id = dst_id;
+        }
+        // Found new src_id or end of the file
+        if (src_id != curr_src_id || graph_file.fail()) {
+            if (curr_src_id != -1) {
                 int mpu_id = (curr_src_id /
                             (MEMORY_ATOM_SIZE / sizeof(WorkListItem)))
                             % numMPUs;
-                uint32_t num_edges = curr_edge_list.size();
-                WorkListItem wl = {INF_VAL, INF_VAL, num_edges,
-                                    curr_edge_index[mpu_id]};
-                uint8_t* wl_data = workListToBytes(wl);
-                vertex_binary.write((char*) wl_data, sizeof(WorkListItem));
+                WorkListItem wl = {INF_VAL, INF_VAL, curr_num_edges,
+                                curr_edge_index[mpu_id]};
+                vertex_binary.write((char*) &wl, sizeof(WorkListItem));
 
-                uint8_t* edge_data = new uint8_t [num_edges * sizeof(Edge)];
-                for (int i = 0; i < curr_edge_list.size(); i++) {
-                    uint8_t* curr_edge_data = edgeToBytes(curr_edge_list[i]);
-                    std::memcpy(edge_data + (i * sizeof(Edge)),
-                                curr_edge_data, sizeof(Edge));
+                curr_edge_index[mpu_id] += curr_num_edges;
+                curr_num_edges = 0;
+                std::clog << "Writing a worklist item: " <<
+                            wl.to_string() << std::endl;
+
+                for (int id = curr_src_id + 1; id < src_id; id++) {
+                    int mpu_id = (id /
+                                (MEMORY_ATOM_SIZE / (sizeof(WorkListItem))))
+                                % numMPUs;
+                    WorkListItem wl = {INF_VAL, INF_VAL, 0,
+                                curr_edge_index[mpu_id]};
+                    vertex_binary.write((char*) &wl, sizeof(WorkListItem));
+                    std::clog << "Filling a hole with worklist item: " <<
+                            wl.to_string() << std::endl;
                 }
-                std::string edge_file_name =
-                    base_edge_file_name + "_" + std::to_string(mpu_id);
-                edge_binary.open(edge_file_name, std::ios::binary |
-                                                    std::ios::out |
-                                                    std::ios::ate);
-                edge_binary.write((char*) edge_data, num_edges * sizeof(Edge));
-                edge_binary.close();
+            }
 
-                curr_edge_index[mpu_id] += num_edges;
-
+            // If graph_file.fail() it means that we are at the end of the
+            // file. No need to rewrite last edge to the edgelist.
+            if (!graph_file.fail()) {
                 curr_src_id = src_id;
-                curr_edge_list.clear();
+                int mpu_id = (curr_src_id /
+                            (MEMORY_ATOM_SIZE / sizeof(WorkListItem)))
+                            % numMPUs;
 
                 uint64_t dst_addr = dst_id * sizeof(WorkListItem);
-                curr_edge_list.emplace_back(0, dst_addr);
+                Edge e(weight, dst_addr);
+                edge_binaries[mpu_id].write((char*) &e, sizeof(Edge));
+                curr_num_edges++;
             }
         } // New edge for the same src_id
         else {
-            // TODO: replace 16 with sizeof(WorkListItem)
+            int mpu_id = (curr_src_id /
+                        (MEMORY_ATOM_SIZE / sizeof(WorkListItem)))
+                        % numMPUs;
+
             uint64_t dst_addr = dst_id * sizeof(WorkListItem);
-            curr_edge_list.emplace_back(0, dst_addr);
+            Edge e(weight, dst_addr);
+            edge_binaries[mpu_id].write((char*) &e, sizeof(Edge));
+            curr_num_edges++;
         }
     }
+
+    std::clog << "Finished reading the file. max_dst_id: " << max_dst_id <<
+        ", curr_src_id: " << curr_src_id << std::endl;
+    for (int id = curr_src_id + 1; id <= max_dst_id; id++) {
+        int mpu_id = (id /
+                    (MEMORY_ATOM_SIZE / (sizeof(WorkListItem))))
+                    % numMPUs;
+        WorkListItem wl = {INF_VAL, INF_VAL, 0,
+                    curr_edge_index[mpu_id]};
+        vertex_binary.write((char*) &wl, sizeof(WorkListItem));
+        std::clog << "Filling a hole with worklist item: " <<
+                            wl.to_string() << std::endl;
+    }
+
     vertex_binary.close();
+    for (auto &edge_binary: edge_binaries) {
+        edge_binary.close();
+    }
 }
 

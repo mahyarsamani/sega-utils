@@ -8,4 +8,7 @@ all : $(OBJS)
 %.cc : %.o
 	$(CXX) -c $< -Lgraph_reader.hh
 
+clean:
+	rm $(OBJS)
+	rm $(TARGET)
 

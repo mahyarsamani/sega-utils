@@ -59,8 +59,8 @@ struct __attribute__ ((packed)) WorkListItem
 
 struct __attribute__ ((packed)) Edge
 {
-    uint64_t weight;
-    uint64_t neighbor;
+    uint16_t weight : 16;
+    uint64_t neighbor : 48;
 
     Edge(uint64_t weight, uint64_t neighbor):
         weight(weight),

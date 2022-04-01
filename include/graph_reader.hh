@@ -83,6 +83,11 @@ class GraphReader
     std::string outdir;
     int numMPUs;
 
+    uint64_t numEdgesRead;
+
+    uint64_t numVerticesRead;
+    uint64_t numHolesFilled;
+
   public:
 
     GraphReader(std::string graph_file_name, bool is_weighted,

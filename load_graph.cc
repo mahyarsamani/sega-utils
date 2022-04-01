@@ -13,10 +13,6 @@ int main(int argc, char** argv) {
     std::string outdir = argv[3];
     int num_mpus = std::stoi(argv[4]);
 
-    if (std::getenv("LOADER_LOG") != "true") {
-        std::clog.setstate(std::ios::failbit);
-    }
-
     bool is_weighted;
     if (mode == "weighted") {
         is_weighted = true;

@@ -41,7 +41,10 @@ GraphReader::GraphReader(std::string graph_file_name,
     graphFileName(graph_file_name),
     isWeighted(is_weighted),
     outdir(outdir),
-    numMPUs(num_mpus)
+    numMPUs(num_mpus),
+    numEdgesRead(0),
+    numVerticesRead(0),
+    numHolesFilled(0)
 {}
 
 void
@@ -75,12 +78,6 @@ GraphReader::createBinaryFiles()
             graph_file >> src_id >> dst_id;
             weight = 0;
         }
-
-        std::clog << "read src_id: " << src_id << ", dst_id: " << dst_id
-                    << ", weight: " << weight << std::endl;
-        if (dst_id > max_dst_id) {
-            max_dst_id = dst_id;
-        }
         // Found new src_id or end of the file
         if (src_id != curr_src_id || graph_file.fail()) {
             if (curr_src_id != -1) {
@@ -90,11 +87,10 @@ GraphReader::createBinaryFiles()
                 WorkListItem wl = {INF_VAL, INF_VAL, curr_num_edges,
                                 curr_edge_index[mpu_id]};
                 vertex_binary.write((char*) &wl, sizeof(WorkListItem));
+                numVerticesRead++;
 
                 curr_edge_index[mpu_id] += curr_num_edges;
                 curr_num_edges = 0;
-                std::clog << "Writing a worklist item: " <<
-                            wl.to_string() << std::endl;
 
                 for (int id = curr_src_id + 1; id < src_id; id++) {
                     int mpu_id = (id /
@@ -103,8 +99,7 @@ GraphReader::createBinaryFiles()
                     WorkListItem wl = {INF_VAL, INF_VAL, 0,
                                 curr_edge_index[mpu_id]};
                     vertex_binary.write((char*) &wl, sizeof(WorkListItem));
-                    std::clog << "Filling a hole with worklist item: " <<
-                            wl.to_string() << std::endl;
+                    numHolesFilled++;
                 }
             }
 
@@ -120,6 +115,7 @@ GraphReader::createBinaryFiles()
                 Edge e(weight, dst_addr);
                 edge_binaries[mpu_id].write((char*) &e, sizeof(Edge));
                 curr_num_edges++;
+                numEdgesRead++;
             }
         } // New edge for the same src_id
         else {
@@ -131,11 +127,10 @@ GraphReader::createBinaryFiles()
             Edge e(weight, dst_addr);
             edge_binaries[mpu_id].write((char*) &e, sizeof(Edge));
             curr_num_edges++;
+            numEdgesRead++;
         }
     }
 
-    std::clog << "Finished reading the file. max_dst_id: " << max_dst_id <<
-        ", curr_src_id: " << curr_src_id << std::endl;
     for (int id = curr_src_id + 1; id <= max_dst_id; id++) {
         int mpu_id = (id /
                     (MEMORY_ATOM_SIZE / (sizeof(WorkListItem))))
@@ -143,13 +138,15 @@ GraphReader::createBinaryFiles()
         WorkListItem wl = {INF_VAL, INF_VAL, 0,
                     curr_edge_index[mpu_id]};
         vertex_binary.write((char*) &wl, sizeof(WorkListItem));
-        std::clog << "Filling a hole with worklist item: " <<
-                            wl.to_string() << std::endl;
+        numHolesFilled++;
     }
 
     vertex_binary.close();
     for (auto &edge_binary: edge_binaries) {
         edge_binary.close();
     }
+
+    std::cout << "Read " << numEdgesRead << " edges, read " << numVerticesRead
+    << " vertices, and filled " << numHolesFilled << " holes." << std::endl;
 }
 

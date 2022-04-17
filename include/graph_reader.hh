@@ -80,6 +80,7 @@ class GraphReader
   private:
     std::string graphFileName;
     bool isWeighted;
+    int memoryAtomSize;
     std::string outdir;
     int numMPUs;
 
@@ -91,7 +92,7 @@ class GraphReader
   public:
 
     GraphReader(std::string graph_file_name, bool is_weighted,
-                std::string outdir, int num_mpus);
+                int memory_atom_size, std::string outdir, int num_mpus);
 
     void createBinaryFiles();
 };

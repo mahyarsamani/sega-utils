@@ -31,15 +31,16 @@
 #include <iostream>
 #include <vector>
 
-#define MEMORY_ATOM_SIZE 64
 #define INF_VAL 4294967295
 
 GraphReader::GraphReader(std::string graph_file_name,
                         bool is_weighted,
+                        int memory_atom_size,
                         std::string outdir,
                         int num_mpus):
     graphFileName(graph_file_name),
     isWeighted(is_weighted),
+    memoryAtomSize(memory_atom_size),
     outdir(outdir),
     numMPUs(num_mpus),
     numEdgesRead(0),
@@ -53,15 +54,17 @@ GraphReader::createBinaryFiles()
     std::ifstream graph_file;
     graph_file.open(graphFileName);
 
-    std::ofstream vertex_binary;
-    std::string vertex_file_name = outdir + "/vertices";
-    vertex_binary.open(vertex_file_name, std::ios::binary | std::ios::out);
-
+    std::vector<std::ofstream> vertex_binaries;
     std::vector<std::ofstream> edge_binaries;
+    std::string base_vertex_file_name = outdir + "/vertices";
     std::string base_edge_file_name = outdir + "/edgelist";
+
     for (int i = 0; i < numMPUs; i++) {
         edge_binaries.emplace_back(
             base_edge_file_name + "_" + std::to_string(i),
+            std::ios::binary | std::ios::out);
+        vertex_binaries.emplace_back(
+            base_vertex_file_name + "_" + std::to_string(i),
             std::ios::binary | std::ios::out);
     }
 
@@ -78,15 +81,20 @@ GraphReader::createBinaryFiles()
             graph_file >> src_id >> dst_id;
             weight = 0;
         }
+
+        if (dst_id > max_dst_id) {
+            max_dst_id = dst_id;
+        }
         // Found new src_id or end of the file
         if (src_id != curr_src_id || graph_file.fail()) {
             if (curr_src_id != -1) {
                 int mpu_id = (curr_src_id /
-                            (MEMORY_ATOM_SIZE / sizeof(WorkListItem)))
+                            (memoryAtomSize / sizeof(WorkListItem)))
                             % numMPUs;
                 WorkListItem wl = {INF_VAL, INF_VAL, curr_num_edges,
                                 curr_edge_index[mpu_id]};
-                vertex_binary.write((char*) &wl, sizeof(WorkListItem));
+                vertex_binaries[mpu_id].write(
+                                        (char*) &wl, sizeof(WorkListItem));
                 numVerticesRead++;
 
                 curr_edge_index[mpu_id] += curr_num_edges;
@@ -94,11 +102,12 @@ GraphReader::createBinaryFiles()
 
                 for (int id = curr_src_id + 1; id < src_id; id++) {
                     int mpu_id = (id /
-                                (MEMORY_ATOM_SIZE / (sizeof(WorkListItem))))
+                                (memoryAtomSize / (sizeof(WorkListItem))))
                                 % numMPUs;
                     WorkListItem wl = {INF_VAL, INF_VAL, 0,
                                 curr_edge_index[mpu_id]};
-                    vertex_binary.write((char*) &wl, sizeof(WorkListItem));
+                    vertex_binaries[mpu_id].write(
+                                            (char*) &wl, sizeof(WorkListItem));
                     numHolesFilled++;
                 }
             }
@@ -108,7 +117,7 @@ GraphReader::createBinaryFiles()
             if (!graph_file.fail()) {
                 curr_src_id = src_id;
                 int mpu_id = (curr_src_id /
-                            (MEMORY_ATOM_SIZE / sizeof(WorkListItem)))
+                            (memoryAtomSize / sizeof(WorkListItem)))
                             % numMPUs;
 
                 uint64_t dst_addr = dst_id * sizeof(WorkListItem);
@@ -120,7 +129,7 @@ GraphReader::createBinaryFiles()
         } // New edge for the same src_id
         else {
             int mpu_id = (curr_src_id /
-                        (MEMORY_ATOM_SIZE / sizeof(WorkListItem)))
+                        (memoryAtomSize / sizeof(WorkListItem)))
                         % numMPUs;
 
             uint64_t dst_addr = dst_id * sizeof(WorkListItem);
@@ -133,15 +142,17 @@ GraphReader::createBinaryFiles()
 
     for (int id = curr_src_id + 1; id <= max_dst_id; id++) {
         int mpu_id = (id /
-                    (MEMORY_ATOM_SIZE / (sizeof(WorkListItem))))
+                    (memoryAtomSize / (sizeof(WorkListItem))))
                     % numMPUs;
         WorkListItem wl = {INF_VAL, INF_VAL, 0,
                     curr_edge_index[mpu_id]};
-        vertex_binary.write((char*) &wl, sizeof(WorkListItem));
+        vertex_binaries[mpu_id].write((char*) &wl, sizeof(WorkListItem));
         numHolesFilled++;
     }
 
-    vertex_binary.close();
+    for (auto &vertex_binary: vertex_binaries) {
+        vertex_binary.close();
+    }
     for (auto &edge_binary: edge_binaries) {
         edge_binary.close();
     }

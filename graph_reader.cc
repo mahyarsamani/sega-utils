@@ -99,17 +99,17 @@ GraphReader::createBinaryFiles()
 
                 curr_edge_index[mpu_id] += curr_num_edges;
                 curr_num_edges = 0;
+            }
 
-                for (int id = curr_src_id + 1; id < src_id; id++) {
-                    int mpu_id = (id /
-                                (memoryAtomSize / (sizeof(WorkListItem))))
-                                % numMPUs;
-                    WorkListItem wl = {INF_VAL, INF_VAL, 0,
-                                curr_edge_index[mpu_id]};
-                    vertex_binaries[mpu_id].write(
-                                            (char*) &wl, sizeof(WorkListItem));
-                    numHolesFilled++;
-                }
+            for (int id = curr_src_id + 1; id < src_id; id++) {
+                int mpu_id = (id /
+                            (memoryAtomSize / (sizeof(WorkListItem))))
+                            % numMPUs;
+                WorkListItem wl = {INF_VAL, INF_VAL, 0,
+                            curr_edge_index[mpu_id]};
+                vertex_binaries[mpu_id].write(
+                                        (char*) &wl, sizeof(WorkListItem));
+                numHolesFilled++;
             }
 
             // If graph_file.fail() it means that we are at the end of the

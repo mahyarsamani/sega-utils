@@ -54,24 +54,20 @@ GraphReader::createBinaryFiles()
     std::ifstream graph_file;
     graph_file.open(graphFileName);
 
-    std::vector<std::ofstream> vertex_binaries;
-    std::vector<std::ofstream> edge_binaries;
-    std::string base_vertex_file_name = outdir + "/vertices";
-    std::string base_edge_file_name = outdir + "/edgelist";
+    std::ofstream vertex_binary(outdir + "/vertices",
+                                std::ios::binary | std::ios::out);
 
+    std::vector<std::ofstream> edge_binaries;
+    std::string base_edge_file_name = outdir + "/edgelist";
     for (int i = 0; i < numMPUs; i++) {
         edge_binaries.emplace_back(
             base_edge_file_name + "_" + std::to_string(i),
-            std::ios::binary | std::ios::out);
-        vertex_binaries.emplace_back(
-            base_vertex_file_name + "_" + std::to_string(i),
             std::ios::binary | std::ios::out);
     }
 
     int curr_src_id = -1;
     uint32_t curr_edge_index[numMPUs] = {0};
     uint32_t curr_num_edges = 0;
-
     int max_dst_id = -1;
     int src_id, dst_id, weight;
     while(!graph_file.fail()) {
@@ -93,8 +89,7 @@ GraphReader::createBinaryFiles()
                             % numMPUs;
                 WorkListItem wl = {INF_VAL, INF_VAL, curr_num_edges,
                                 curr_edge_index[mpu_id]};
-                vertex_binaries[mpu_id].write(
-                                        (char*) &wl, sizeof(WorkListItem));
+                vertex_binary.write((char*) &wl, sizeof(WorkListItem));
                 numVerticesRead++;
 
                 curr_edge_index[mpu_id] += curr_num_edges;
@@ -107,8 +102,7 @@ GraphReader::createBinaryFiles()
                             % numMPUs;
                 WorkListItem wl = {INF_VAL, INF_VAL, 0,
                             curr_edge_index[mpu_id]};
-                vertex_binaries[mpu_id].write(
-                                        (char*) &wl, sizeof(WorkListItem));
+                vertex_binary.write((char*) &wl, sizeof(WorkListItem));
                 numHolesFilled++;
             }
 
@@ -146,13 +140,12 @@ GraphReader::createBinaryFiles()
                     % numMPUs;
         WorkListItem wl = {INF_VAL, INF_VAL, 0,
                     curr_edge_index[mpu_id]};
-        vertex_binaries[mpu_id].write((char*) &wl, sizeof(WorkListItem));
+        vertex_binary.write((char*) &wl, sizeof(WorkListItem));
         numHolesFilled++;
     }
 
-    for (auto &vertex_binary: vertex_binaries) {
-        vertex_binary.close();
-    }
+    vertex_binary.close();
+
     for (auto &edge_binary: edge_binaries) {
         edge_binary.close();
     }

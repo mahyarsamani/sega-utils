@@ -8,10 +8,7 @@ all : $(OBJS)
 %.o : %.cc
 	$(CXX) -c $< -Iinclude
 
-install:
-	cp loader ~/usr/bin
-
 clean:
 	rm $(OBJS)
 	rm $(TARGET)
-	rm ~/usr/bin/loader
+

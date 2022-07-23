@@ -27,9 +27,9 @@ class GraphVisualization:
     # nx.draw_networkx(G) - plots the graph
     # plt.show() - displays the graph
     def visualize(self):
-        G = nx.Graph()
+        G = nx.DiGraph()
         G.add_edges_from(self.visual)
-        nx.draw_networkx(G)
+        nx.draw_networkx(G, arrows=True)
         plt.show()
 
 def get_inputs():

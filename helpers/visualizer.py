@@ -27,10 +27,16 @@ class GraphVisualization:
     # nx.draw_networkx(G) - plots the graph
     # plt.show() - displays the graph
     def visualize(self):
-        G = nx.DiGraph()
+        G = nx.Graph()
         G.add_edges_from(self.visual)
-        nx.draw_networkx(G, arrows=True)
+        nx.draw_networkx(G)
         plt.show()
+
+    def visualize_and_save(self, file_name):
+        G = nx.Graph()
+        G.add_edges_from(self.visual)
+        nx.draw_networkx(G)
+        plt.savefig(file_name)
 
 def get_inputs():
     argparser = argparse.ArgumentParser()
@@ -47,4 +53,5 @@ if __name__ == "__main__":
             src_id = int(src_id)
             dst_id = int(dst_id)
             G.addEdge(src_id, dst_id)
-    G.visualize()
+    # G.visualize()
+    G.visualize_and_save("graph.pdf")

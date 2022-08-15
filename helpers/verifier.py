@@ -15,10 +15,11 @@ if __name__ == "__main__":
     truth_data = None
     parsed_simout = {}
     with open(test, "r") as test_file:
-        for line in test_file.readlines()[11:-1]:
-            vid = int(int(re.search("WorkListItem\[(.+?)\]", line).group(1)) / 16)
+        for line in test_file.readlines()[13:-1]:
+            vid_base = int(int(re.search("WorkListItem\[(.+?)\]", line).group(1)) / 16)
+            vid_offset = int(re.search("\]\[(.+?)\]", line).group(1))
             prop = int(re.search(", prop: (.+?),", line).group(1))
-            parsed_simout[vid] = prop
+            parsed_simout[vid_base + vid_offset] = prop
 
     with open(truth, "r") as truth_file:
         truth_data = json.load(truth_file)

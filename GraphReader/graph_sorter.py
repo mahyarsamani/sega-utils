@@ -1,5 +1,6 @@
 #!/bin/python
 import argparse
+from itertools import groupby
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
@@ -19,8 +20,11 @@ if __name__ == "__main__":
             dst_id = int(dst_id)
             edges.append((src_id, dst_id))
 
-    edges = sorted(edges, key = lambda x: x[0])
+    edges = sorted(edges, key = lambda x: (x[0], x[1]))
 
+    edges =  list(dict.fromkeys(edges))
+    edges = [e for e in edges if e[0] != e[1]]
+    
     with open(args.output_graph_file, "w") as output_graph_file:
         for src_id, dst_id in edges:
             output_graph_file.write(f"{src_id} {dst_id}\n")

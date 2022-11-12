@@ -35,24 +35,31 @@
 
 struct __attribute__ ((packed)) WorkListItem
 {
-    uint32_t tempProp;
-    uint32_t prop;
-    uint32_t degree;
-    uint32_t edgeIndex;
+    uint32_t tempProp: 32;
+    uint32_t prop: 32;
+    uint32_t edgeIndex: 32;
+    uint32_t degree: 30;
+    bool activeNow: 1;
+    bool activeFuture: 1;
 
     WorkListItem(uint32_t temp_prop, uint32_t prop,
-                uint32_t degree, uint32_t edge_index):
+                uint32_t degree, uint32_t edge_index,
+                bool active_now, bool active_future):
         tempProp(temp_prop),
         prop(prop),
+        edgeIndex(edge_index),
         degree(degree),
-        edgeIndex(edge_index)
+        activeNow(active_now),
+        activeFuture(active_future)
     {}
     std::string to_string() {
       std::string ret = "";
       ret += "WorkListItem{temp_prop: " + std::to_string(tempProp) +
                 ", prop: " + std::to_string(prop) +
                 ", degree: " + std::to_string(degree) +
-                ", edgeIndex: " + std::to_string(edgeIndex) + "}";
+                ", edgeIndex: " + std::to_string(edgeIndex) +
+                ", activeNow: " + (activeNow ? "true" : "false") +
+                ", activeFuture: " + (activeFuture ? "true" : "false") + "}";
       return ret;
     }
 };

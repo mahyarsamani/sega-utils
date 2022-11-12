@@ -88,7 +88,7 @@ GraphReader::createBinaryFiles()
                             (memoryAtomSize / sizeof(WorkListItem)))
                             % numMPUs;
                 WorkListItem wl = {INF_VAL, INF_VAL, curr_num_edges,
-                                curr_edge_index[mpu_id]};
+                                curr_edge_index[mpu_id], false, false};
                 vertex_binary.write((char*) &wl, sizeof(WorkListItem));
                 numVerticesRead++;
 
@@ -101,7 +101,7 @@ GraphReader::createBinaryFiles()
                             (memoryAtomSize / (sizeof(WorkListItem))))
                             % numMPUs;
                 WorkListItem wl = {INF_VAL, INF_VAL, 0,
-                            curr_edge_index[mpu_id]};
+                            curr_edge_index[mpu_id], false, false};
                 vertex_binary.write((char*) &wl, sizeof(WorkListItem));
                 numHolesFilled++;
             }
@@ -139,7 +139,7 @@ GraphReader::createBinaryFiles()
                     (memoryAtomSize / (sizeof(WorkListItem))))
                     % numMPUs;
         WorkListItem wl = {INF_VAL, INF_VAL, 0,
-                    curr_edge_index[mpu_id]};
+                    curr_edge_index[mpu_id], false, false};
         vertex_binary.write((char*) &wl, sizeof(WorkListItem));
         numHolesFilled++;
     }

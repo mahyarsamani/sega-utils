@@ -28,6 +28,7 @@
 
 #include "graph_reader.hh"
 
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 
@@ -76,7 +77,7 @@ GraphReader::createBinaryFiles()
             graph_file >> src_id >> dst_id >> weight;
         } else {
             graph_file >> src_id >> dst_id;
-            weight = 0;
+            weight = rand() % 32 + 1;
         }
 
         if (dst_id > max_dst_id) {

@@ -7,6 +7,14 @@ if __name__ == "__main__":
 
     argparser.add_argument("input_graph_file", type=str)
     argparser.add_argument("output_graph_file", type=str)
+    argparser.add_argument(
+        "--weighted",
+        dest="weighted",
+        action="store_const",
+        const=True,
+        default=False,
+        help="Whether graph is weighted",
+    )
 
     args = argparser.parse_args()
 
@@ -52,7 +60,11 @@ if __name__ == "__main__":
                 new_dst_id = first_avail_id
                 translate_table[dst_id] = new_dst_id
                 first_avail_id += 1
-            edges.append((new_src_id, new_dst_id))
+            if args.weighted:
+                weight = line.split()[2]
+                edges.append((new_src_id, new_dst_id, weight))
+            else:
+                edges.append((new_src_id, new_dst_id))
 
     edges =  list(dict.fromkeys(edges))
     edges = sorted(edges, key = lambda x: (x[0], x[1]))
@@ -60,5 +72,8 @@ if __name__ == "__main__":
     edges = [(e[0]-min_id, e[1]-min_id) for e in edges if e[0] != e[1]]
 
     with open(args.output_graph_file, "w") as output_graph_file:
-        for src_id, dst_id in edges:
-            output_graph_file.write(f"{src_id} {dst_id}\n")
+        if args.weighted:
+            for src_id, dst_id, weight in edges:
+                output_graph_file.write(f"{src_id} {dst_id} {weight}\n")
+            for src_id, dst_id in edges:
+                output_graph_file.write(f"{src_id} {dst_id}\n")

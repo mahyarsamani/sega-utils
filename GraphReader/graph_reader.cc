@@ -59,14 +59,15 @@ GraphReader::createBinaryFiles()
 
     std::vector<std::ofstream> edge_binaries;
     std::string base_edge_file_name = outdir + "/edgelist";
-    for (int i = 0; i < numMPUs; i++) {
+    int num_edge_binaries = numMPUs / 2;
+    for (int i = 0; i < num_edge_binaries; i++) {
         edge_binaries.emplace_back(
             base_edge_file_name + "_" + std::to_string(i),
             std::ios::binary | std::ios::out);
     }
 
     int curr_src_id = -1;
-    uint32_t curr_edge_index[numMPUs] = {0};
+    uint32_t curr_edge_index[num_edge_binaries] = {0};
     uint32_t curr_num_edges = 0;
     int max_dst_id = -1;
     int src_id, dst_id, weight;
@@ -86,7 +87,7 @@ GraphReader::createBinaryFiles()
             if (curr_src_id != -1) {
                 int mpu_id = (curr_src_id /
                             (memoryAtomSize / sizeof(WorkListItem)))
-                            % numMPUs;
+                            % num_edge_binaries;
                 WorkListItem wl = {INF_VAL, INF_VAL, curr_num_edges,
                                 curr_edge_index[mpu_id], false, false};
                 vertex_binary.write((char*) &wl, sizeof(WorkListItem));
@@ -99,7 +100,7 @@ GraphReader::createBinaryFiles()
             for (int id = curr_src_id + 1; id < src_id; id++) {
                 int mpu_id = (id /
                             (memoryAtomSize / (sizeof(WorkListItem))))
-                            % numMPUs;
+                            % num_edge_binaries;
                 WorkListItem wl = {INF_VAL, INF_VAL, 0,
                             curr_edge_index[mpu_id], false, false};
                 vertex_binary.write((char*) &wl, sizeof(WorkListItem));
@@ -112,7 +113,7 @@ GraphReader::createBinaryFiles()
                 curr_src_id = src_id;
                 int mpu_id = (curr_src_id /
                             (memoryAtomSize / sizeof(WorkListItem)))
-                            % numMPUs;
+                            % num_edge_binaries;
 
                 uint64_t dst_addr = dst_id * sizeof(WorkListItem);
                 Edge e(weight, dst_addr);
@@ -124,7 +125,7 @@ GraphReader::createBinaryFiles()
         else {
             int mpu_id = (curr_src_id /
                         (memoryAtomSize / sizeof(WorkListItem)))
-                        % numMPUs;
+                        % num_edge_binaries;
 
             uint64_t dst_addr = dst_id * sizeof(WorkListItem);
             Edge e(weight, dst_addr);
@@ -137,7 +138,7 @@ GraphReader::createBinaryFiles()
     for (int id = curr_src_id + 1; id <= max_dst_id; id++) {
         int mpu_id = (id /
                     (memoryAtomSize / (sizeof(WorkListItem))))
-                    % numMPUs;
+                    % num_edge_binaries;
         WorkListItem wl = {INF_VAL, INF_VAL, 0,
                     curr_edge_index[mpu_id], false, false};
         vertex_binary.write((char*) &wl, sizeof(WorkListItem));

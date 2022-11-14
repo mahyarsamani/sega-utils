@@ -37,13 +37,21 @@ def get_inputs():
         type=int,
         help="Number gpts to create synth graph binaries for.",
     )
+    argparser.add_argument(
+        "--weighted",
+        dest="weighted",
+        action="store_const",
+        const=True,
+        default=False,
+        help="Whether graph is weighted",
+    )
 
     args = argparser.parse_args()
-    return args.path, args.num_gpts
+    return args.path, args.num_gpts, args.weighted
 
 
 if __name__ == "__main__":
-    graph_path, num_gpts = get_inputs()
+    graph_path, num_gpts, weighted = get_inputs()
 
     graph_sorter = os.environ.get("GRAPH_SORTER")
     graph_reader = os.environ.get("GRAPH_READER")
@@ -57,6 +65,9 @@ if __name__ == "__main__":
         raise ValueError(f"{graph_path} does not exist.")
 
     graph_dir = os.path.dirname(graph_path)
+    weighted_flag = ""
+    if weighted:
+        weighted_flag = "--weighted"
     sorted_graph = f"{graph_dir}/sorted_graph.txt"
     if not os.path.exists(sorted_graph):
         print(f"Sorting {graph_path} into {sorted_graph}.")
@@ -66,6 +77,7 @@ if __name__ == "__main__":
                 f"{graph_sorter}",
                 f"{graph_path}",
                 f"{sorted_graph}",
+                weighted_flag,
             ]
         )
     if not "binaries" in os.listdir(graph_dir):

@@ -69,11 +69,12 @@ if __name__ == "__main__":
     edges =  list(dict.fromkeys(edges))
     edges = sorted(edges, key = lambda x: (x[0], x[1]))
     min_id = edges[0][0]
-    edges = [(e[0]-min_id, e[1]-min_id) for e in edges if e[0] != e[1]]
+    edges = [e for e in edges if e[0] != e[1]]
 
     with open(args.output_graph_file, "w") as output_graph_file:
         if args.weighted:
             for src_id, dst_id, weight in edges:
                 output_graph_file.write(f"{src_id} {dst_id} {weight}\n")
+        else:
             for src_id, dst_id in edges:
                 output_graph_file.write(f"{src_id} {dst_id}\n")

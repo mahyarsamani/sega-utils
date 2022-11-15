@@ -90,6 +90,9 @@ if __name__ == "__main__":
         os.mkdir(f"{graph_dir}/binaries/gpts_{num_gpts}")
         print(f"Created {graph_dir}/binaries/gpts_{num_gpts}")
 
+    weighted_flag = "false"
+    if weighted:
+        weighted_flag = "true"
     expected_bins = ["vertices"] + [f"edgelist_{i}" for i in range(num_gpts)]
     if not all(
         [
@@ -107,7 +110,7 @@ if __name__ == "__main__":
             [
                 f"{graph_reader}",
                 f"{sorted_graph}",
-                "false",
+                weighted_flag,
                 f"{num_gpts}",
                 "32",
                 f"{graph_dir}/binaries/gpts_{num_gpts}",

@@ -62,6 +62,8 @@ if __name__ == "__main__":
     frontier = [0]
     heights[0] = 0
 
+    num_traversed = 0
+
     while True:
         next_frontier = []
         for curr_id in frontier:
@@ -72,6 +74,7 @@ if __name__ == "__main__":
                 end = len(edge_indices)
             curr_edges = edges[start : end]
 
+            num_traversed += len(curr_edges)
             for edge in curr_edges:
                 if heights[edge] > (heights[curr_id] + 1):
                     heights[edge] = heights[curr_id] + 1
@@ -80,5 +83,6 @@ if __name__ == "__main__":
         if len(frontier) == 0:
             break
 
+    print(num_traversed)
     with open(f"{truth_file_path}/truth.json", "w") as truth_file:
         json.dump(heights, truth_file)

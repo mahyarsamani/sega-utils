@@ -113,7 +113,6 @@ struct __attribute__ ((packed)) MirrorVertex
 class SlicedGraphReader
 {
   private:
-    std::string graph;
     std::ifstream main;
     std::ifstream mirrors;
 
@@ -121,6 +120,7 @@ class SlicedGraphReader
     int numMPUs;
     int interleavingSize;
     int verticesPerSlice;
+    int maxVertexId;
     std::string outdir;
 
     uint64_t numEdgesRead;
@@ -128,14 +128,14 @@ class SlicedGraphReader
     uint64_t numHolesFilled;
     uint64_t numMirrorRead;
 
-    int getMaxDstId();
+    int getMaxDstId() { return maxVertexId; };
 
     int getMPUId(int vid);
     int getSliceId(int vid);
 
   public:
 
-    SlicedGraphReader(std::string graph, std::string main, std::string mirrors,
+    SlicedGraphReader(std::string main, std::string mirrors, int max_id,
                         bool is_weighted, int num_mpus, int intlv_size,
                         int vertices_per_slice, std::string outdir);
 

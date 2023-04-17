@@ -36,46 +36,21 @@
 
 #define INF_VAL 4294967295
 
-SlicedGraphReader::SlicedGraphReader(std::string graph_path,
-                                    std::string main_path,
+SlicedGraphReader::SlicedGraphReader(std::string main_path,
                                     std::string mirrors_path,
+                                    int max_id,
                                     bool is_weighted,
                                     int num_mpus,
                                     int intlv_size,
                                     int vertices_per_slice,
                                     std::string outdir):
-    graph(graph_path), isWeighted(is_weighted), numMPUs(num_mpus),
+    maxVertexId(max_id), isWeighted(is_weighted), numMPUs(num_mpus),
     interleavingSize(intlv_size), verticesPerSlice(vertices_per_slice),
     outdir(outdir), numEdgesRead(0), numVerticesRead(0),
     numHolesFilled(0), numMirrorRead(0)
 {
     main.open(main_path);
     mirrors.open(mirrors_path);
-}
-
-int
-SlicedGraphReader::getMaxDstId()
-{
-    int src_id;
-    int dst_id;
-    int weight;
-    int max_dst_id = -1;
-
-    std::ifstream graph_file;
-    graph_file.open(graph);
-    while (!graph_file.fail()) {
-        if (isWeighted) {
-            graph_file >> src_id >> dst_id >> weight;
-        } else {
-            graph_file >> src_id >> dst_id;
-            weight = 0;
-        }
-        if (dst_id > max_dst_id) {
-            max_dst_id = dst_id;
-        }
-    }
-    graph_file.close();
-    return max_dst_id;
 }
 
 int
@@ -201,6 +176,7 @@ SlicedGraphReader::createBinaryFiles()
             }
             curr_src_slice = src_slice;
             curr_dst_slice = dst_slice;
+            curr_src_id = -1;
         }
         if (src_id != curr_src_id || mirrors.fail()) {
             if (curr_src_id != -1) {

@@ -156,7 +156,7 @@ SlicedGraphReader::createBinaryFiles()
     curr_src_id = -1;
     int curr_src_slice = 0;
     int curr_dst_slice = -1;
-    int bytes_written_to_mirror = 0;
+    uint64_t bytes_written_to_mirror = 0;
     int total_slices = std::ceil((float)(max_dst_id + 1) / verticesPerSlice);
     while (!mirrors.fail()) {
         if (isWeighted) {
@@ -172,7 +172,7 @@ SlicedGraphReader::createBinaryFiles()
                             + ((src_slice - curr_src_slice - 1) * total_slices)
                             + (dst_slice);
             for (int i = 0; i < num_fills; i++) {
-                map_binary.write((char*) &bytes_written_to_mirror, sizeof(int));
+                map_binary.write((char*) &bytes_written_to_mirror, sizeof(uint64_t));
             }
             curr_src_slice = src_slice;
             curr_dst_slice = dst_slice;
@@ -213,7 +213,7 @@ SlicedGraphReader::createBinaryFiles()
                     + ((total_slices - curr_src_slice - 2) * total_slices)
                     + (total_slices - 1) + 1;
     for (int i = 0; i < num_fills; i++) {
-        map_binary.write((char*) &bytes_written_to_mirror, sizeof(int));
+        map_binary.write((char*) &bytes_written_to_mirror, sizeof(uint64_t));
     }
 
     mirrors_binary.close();

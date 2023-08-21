@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import shutil
 import argparse
 import subprocess
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     if not "graph.txt" in os.listdir(graph_path):
         print(f"graph.txt not found in {graph_path}")
         for delete in os.scandir(graph_path):
-            os.remove(delete.path)
+            shutil.rmtree(delete.path)
         print(f"Deleted everything in {graph_path}")
         subprocess.run(
             [

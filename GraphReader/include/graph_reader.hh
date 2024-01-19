@@ -97,6 +97,7 @@ class GraphReader
     uint64_t numVerticesRead;
     uint64_t numHolesFilled;
 
+    int getNumEdgeBinaries();
     int getMPUId(int vid);
 
   public:

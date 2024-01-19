@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
         << "[graph_path: str] [weighted: bool] [num_gpts: int] "
         << "[intlv_size: int] [num_gpts_per_edge_binary] [out_path: str]" << std::endl;
         return 0;
-    } else if (argc != 6) {
+    } else if (argc != 7) {
         std::cout << "Wrong number of input arguments: " << std::endl;
         std::cout << "Please provide these input arguments." << std::endl
         << "[graph_path: str] [weighted: bool] [num_gpts: int] "

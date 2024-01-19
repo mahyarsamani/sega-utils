@@ -37,23 +37,30 @@
 GraphReader::GraphReader(std::string graph_file_name,
                         bool is_weighted,
                         int intlv_size,
-                        std::string outdir,
-                        int num_mpus):
+                        int num_mpus,
+                        int mpus_per_edge_binary,
+                        std::string outdir):
     graphFileName(graph_file_name),
     isWeighted(is_weighted),
     interleavingSize(intlv_size),
-    outdir(outdir),
     numMPUs(num_mpus),
+    mpusPerEdgeBinary(mpus_per_edge_binary),
+    outdir(outdir),
     numEdgesRead(0),
     numVerticesRead(0),
     numHolesFilled(0)
 {}
 
 int
+GraphReader::getNumEdgeBinaries()
+{
+    return ((int) numMPUs / mpusPerEdgeBinary);
+}
+
+int
 GraphReader::getMPUId(int vid)
 {
-    int num_edge_binaries = numMPUs / 2;
-    return (vid / (interleavingSize / sizeof(WorkListItem))) % num_edge_binaries;
+    return (vid / (interleavingSize / sizeof(WorkListItem))) % getNumEdgeBinaries();
 }
 
 void
@@ -67,7 +74,7 @@ GraphReader::createBinaryFiles()
 
     std::vector<std::ofstream> edge_binaries;
     std::string base_edge_file_name = outdir + "/edgelist";
-    int num_edge_binaries = numMPUs / 2;
+    int num_edge_binaries = getNumEdgeBinaries();
     for (int i = 0; i < num_edge_binaries; i++) {
         edge_binaries.emplace_back(
             base_edge_file_name + "_" + std::to_string(i),

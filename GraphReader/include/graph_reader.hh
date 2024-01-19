@@ -88,8 +88,9 @@ class GraphReader
     std::string graphFileName;
     bool isWeighted;
     int interleavingSize;
-    std::string outdir;
     int numMPUs;
+    int mpusPerEdgeBinary;
+    std::string outdir;
 
     uint64_t numEdgesRead;
 
@@ -101,7 +102,8 @@ class GraphReader
   public:
 
     GraphReader(std::string graph_file_name, bool is_weighted,
-                int intlv_size, std::string outdir, int num_mpus);
+                int intlv_size, int num_mpus,
+                int mpus_per_edge_binary, std::string outdir);
 
     void createBinaryFiles();
 };

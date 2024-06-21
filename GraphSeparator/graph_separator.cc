@@ -32,9 +32,9 @@ void GraphSeparator::separateGraph()
 {
     std::ifstream graph(_graph);
 
-    std::string main_name = _outdir + "/main.txt";
+    std::string main_name = _outdir + "/pel_main.txt";
     std::ofstream main(main_name);
-    std::string mirror_name = _outdir + "/mirror.txt";
+    std::string mirror_name = _outdir + "/pel_mirrors.txt";
     std::ofstream mirror(mirror_name);
 
     std::vector<Edge> main_edges;
@@ -42,10 +42,9 @@ void GraphSeparator::separateGraph()
     std::vector<std::vector<Edge>> mirror_edges(num_slices * num_slices);
 
     int src, dst;
-    double weight = 0;
+    double weight = 0.0;
     while (!graph.fail()) {
         if (_weighted) {
-            double weight;
             graph >> src >> dst >> weight;
         } else {
             graph >> src >> dst;

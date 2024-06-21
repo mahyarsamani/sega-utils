@@ -1,6 +1,6 @@
 CXX=g++
-TARGET=reader
-OBJS=graph_reader.o load_graph.o
+TARGET=sorter
+OBJS=graph_sorter.o sort_graph.o
 
 all : $(OBJS)
 	g++ $(OBJS) -o $(TARGET)
@@ -11,4 +11,3 @@ all : $(OBJS)
 clean:
 	rm $(OBJS)
 	rm $(TARGET)
-

@@ -1,4 +1,5 @@
 *.o
-loader
-generator
-
+sorter
+separator
+reader
+sliced-reader

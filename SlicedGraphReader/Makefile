@@ -1,5 +1,5 @@
 CXX=g++
-TARGET=loader
+TARGET=sliced-reader
 OBJS=sliced_graph_reader.o load_graph.o
 
 all : $(OBJS)
